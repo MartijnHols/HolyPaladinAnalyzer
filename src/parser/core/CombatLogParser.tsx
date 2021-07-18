@@ -695,16 +695,23 @@ class CombatLogParser {
 
     console.time('functional');
     const ctor = this.constructor as typeof CombatLogParser;
-    const info = {
+
+    // build info object for functional modules
+    const combatants: { [playerId: number]: CombatantInfoEvent } = [];
+    this.combatantInfoEvents.forEach((ci) => (combatants[ci.sourceID] = ci));
+    const selectedCombatant = combatants[this.playerId];
+    const functionalInfo = {
       abilities: this.getModule(Abilities).abilities,
       playerId: this.selectedCombatant.id,
       fightStart: this.fight.start_time,
       fightEnd: this.fight.end_time,
+      selectedCombatant,
+      combatants,
     };
 
     console.time('functional suggestions');
     ctor.suggestions.forEach((suggestionFactory) => {
-      const suggestions = suggestionFactory(this.eventHistory, info);
+      const suggestions = suggestionFactory(this.eventHistory, functionalInfo);
       if (Array.isArray(suggestions)) {
         suggestions.forEach((suggestion) => results.addIssue(suggestion));
       } else {
@@ -714,7 +721,7 @@ class CombatLogParser {
     console.timeEnd('functional suggestions');
     console.time('functional statistics');
     ctor.statistics.forEach((Component) => {
-      results.statistics.push(<Component events={this.eventHistory} info={info} />);
+      results.statistics.push(<Component events={this.eventHistory} info={functionalInfo} />);
     });
     console.timeEnd('functional statistics');
     console.timeEnd('functional');
